@@ -1,0 +1,93 @@
+# Aegis Shield - Military-Grade Snort Rules
+# =========================================
+
+# === NSA-LEVEL NETWORK PROTECTION RULES ===
+
+# Block attempts to exploit common vulnerabilities
+alert tcp any any -> any any (msg:"AEGIS SHIELD - SMB Remote Code Execution Attempt"; flow:established; content:"|FF|SMB|2B 00 00 00 00|"; offset:4; depth:9; sid:3000001; rev:1;)
+
+# Block NTLM Hash capturing attempts
+alert tcp any any -> any any (msg:"AEGIS SHIELD - NTLM Hash Capture Attempt"; flow:established; content:"NTLMSSP"; nocase; sid:3000002; rev:1;)
+
+# Block suspicious RDP connections
+alert tcp any any -> any 3389 (msg:"AEGIS SHIELD - Potential RDP Brute Force"; flow:established,to_server; threshold:type threshold, track by_src, count 5, seconds 60; sid:3000003; rev:1;)
+
+# === ADVANCED COMMAND INJECTION PROTECTION ===
+
+# Detect Linux command injection
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Linux Command Injection"; flow:established,to_server; content:"|3B|"; pcre:"/;(\s*)(shutdown|reboot|cat|echo|rm|wget|curl|bash|chmod|perl|python|ruby)/i"; sid:3000004; rev:1;)
+
+# Detect Windows command injection
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Windows Command Injection"; flow:established,to_server; content:"&"; pcre:"/&(\s*)(shutdown|rmdir|del|erase|format|cmd|powershell)/i"; sid:3000005; rev:1;)
+
+# === MILITARY-GRADE DATA PROTECTION ===
+
+# Detect unencrypted PII transmission
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Unencrypted SSN Transmission"; flow:established; content:"SSN"; nocase; pcre:"/SSN[\s\-:]{1,3}[0-9]{3}[\s\-]{0,1}[0-9]{2}[\s\-]{0,1}[0-9]{4}/"; sid:3000006; rev:1;)
+
+# Detect classified document keywords
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Potential Classified Document Exfiltration"; flow:established,to_server; pcre:"/\b(SECRET|TOP[\s\-]SECRET|CONFIDENTIAL|CLASSIFIED)\b/i"; threshold:type threshold, track by_src, count 1, seconds 600; sid:3000007; rev:1;)
+
+# === UNAUTHORIZED ACCESS PREVENTION ===
+
+# Block suspicious SSH access patterns
+alert tcp any any -> any 22 (msg:"AEGIS SHIELD - SSH Brute Force Attempt"; flow:established,to_server; threshold:type threshold, track by_src, count 5, seconds 60; sid:3000008; rev:1;)
+
+# Block suspicious database access patterns
+alert tcp any any -> any 3306 (msg:"AEGIS SHIELD - MySQL Brute Force Attempt"; flow:established,to_server; threshold:type threshold, track by_src, count 5, seconds 60; sid:3000009; rev:1;)
+
+# === ADVANCED PERSISTENT THREAT DETECTION ===
+
+# Detect data staging before exfiltration
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Data Staging Detection"; flow:established,to_server; content:".zip"; nocase; content:".rar"; nocase; content:".tar"; nocase; content:".crypt"; nocase; pcre:"/\.(zip|rar|tar|7z|gz|enc|crypt)/i"; threshold:type threshold, track by_src, count 3, seconds 300; sid:3000010; rev:1;)
+
+# Detect beaconing patterns
+alert ip any any -> any any (msg:"AEGIS SHIELD - Beaconing Detection"; flow:established; threshold:type both, track by_src, count 5, seconds 3600; detection_filter:track by_src, count 5, seconds 300; sid:3000011; rev:1;)
+
+# === INSIDER THREAT DETECTION ===
+
+# Detect unusual data access patterns (potential insider threat)
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Unusual Data Access Pattern"; flow:established,to_server; threshold:type threshold, track by_src, count 50, seconds 60; sid:3000012; rev:1;)
+
+# Detect after-hours system access
+alert tcp any 192.168.0.0/16 -> any any (msg:"AEGIS SHIELD - After Hours System Access"; flow:established,to_server; timestring:"%H"; timecheck:>18,<06; sid:3000013; rev:1;)
+
+# === BOTNET AND C2 DETECTION ===
+
+# Detect IRC botnet traffic
+alert tcp any any -> any any (msg:"AEGIS SHIELD - IRC Bot Traffic Detection"; flow:established,to_server; content:"NICK"; content:"JOIN"; content:"PRIVMSG"; pcre:"/PRIVMSG\s+#[^\s]+\s+:!.*$/"; sid:3000014; rev:1;)
+
+# Detect HTTP botnet traffic
+alert tcp any any -> any any (msg:"AEGIS SHIELD - HTTP Bot Traffic Detection"; flow:established,to_server; content:"POST"; content:"User-Agent|3A|"; content:!"Mozilla"; pcre:"/^POST.*Host\x3a\s+[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/i"; sid:3000015; rev:1;)
+
+# === LATERAL MOVEMENT DETECTION ===
+
+# Detect suspicious network scanning
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Internal Network Scanning"; flow:stateless; flags:S; threshold:type threshold, track by_src, count 30, seconds 60; sid:3000016; rev:1;)
+
+# Detect PsExec usage
+alert tcp any any -> any 445 (msg:"AEGIS SHIELD - PsExec Detection"; flow:established,to_server; content:"PSEXESVC"; sid:3000017; rev:1;)
+
+# === CRITICAL INFRASTRUCTURE PROTECTION ===
+
+# Protect SCADA systems
+alert tcp any any -> any any (msg:"AEGIS SHIELD - SCADA Protocol Violation"; flow:established; content:"SCADA"; content:"PLC"; threshold:type threshold, track by_src, count 1, seconds 60; sid:3000018; rev:1;)
+
+# Protect ICS/SCADA Modbus protocol
+alert tcp any any -> any 502 (msg:"AEGIS SHIELD - Modbus Protocol Attack"; flow:established,to_server; content:"|00 00 00 00 00 06 01|"; depth:7; sid:3000019; rev:1;)
+
+# === ADVANCED MALWARE DETECTION ===
+
+# Detect suspicious encoded script download
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Base64 Encoded Executable Download"; flow:established,to_client; content:"TVqQAAMA"; sid:3000020; rev:1;)
+
+# Detect suspicious PowerShell download cradle
+alert tcp any any -> any any (msg:"AEGIS SHIELD - PowerShell Download Cradle"; flow:established,to_server; content:"powershell"; nocase; content:"downloadstring"; nocase; content:"New-Object"; nocase; sid:3000021; rev:1;)
+
+# === ZERO-DAY PROTECTION ===
+
+# Detect unusually large packets
+alert ip any any -> any any (msg:"AEGIS SHIELD - Unusually Large Packet"; dsize:>8192; threshold:type threshold, track by_src, count 5, seconds 60; sid:3000022; rev:1;)
+
+# Detect anomalous protocol behavior
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Anomalous Protocol Behavior"; flow:established; flags:PA; dsize:1; threshold:type threshold, track by_src, count 50, seconds 60; sid:3000023; rev:1;) 

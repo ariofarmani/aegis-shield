@@ -1,0 +1,34 @@
+[Unit]
+Description=Aegis Shield - Military-Grade IDS/IPS
+After=network.target
+Wants=network.target
+Documentation=https://github.com/your-username/aegis-shield
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/bin/node /opt/aegis-shield/src/index.js
+WorkingDirectory=/opt/aegis-shield
+Environment=NODE_ENV=production
+Environment=AEGIS_CONFIG=/etc/aegis-shield/config.yaml
+Restart=on-failure
+RestartSec=10s
+TimeoutStartSec=120
+TimeoutStopSec=60
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_SYS_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_SYS_ADMIN
+ProtectSystem=full
+ReadWritePaths=/var/log/aegis-shield /var/lib/aegis-shield /var/run/aegis-shield
+PrivateTmp=true
+NoNewPrivileges=false
+LimitCORE=infinity
+LimitNOFILE=65535
+LimitNPROC=8192
+
+[Install]
+WantedBy=multi-user.target 

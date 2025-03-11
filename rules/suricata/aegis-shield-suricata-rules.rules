@@ -1,0 +1,98 @@
+# Aegis Shield - Military-Grade Suricata Rules
+# ==========================================
+
+# === CRITICAL INFRASTRUCTURE PROTECTION RULES ===
+
+# Block all suspicious TLS/SSL certificates
+alert tls any any -> any any (msg:"AEGIS SHIELD - Invalid SSL certificate"; flow:established; ssl_state:invalid_certificate; classtype:protocol-command-decode; sid:8000001; rev:1;)
+
+# Block suspicious DNS tunneling
+alert udp any any -> any 53 (msg:"AEGIS SHIELD - Potential DNS tunneling detected"; flow:stateless; dns.query; content:!"|00 01 00 00 00 00 00 00|"; fast_pattern; pcre:"/[a-zA-Z0-9\-]{30,}/"; threshold:type threshold, track by_src, count 5, seconds 60; classtype:trojan-activity; sid:8000002; rev:1;)
+
+# Detect and block command and control traffic
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Potential C2 channel detected"; flow:established; flowbits:isset,established_tcp_session; pcre:"/^[\x00-\x09\x0b-\x0c\x0e-\x1f]{20,}/"; threshold:type threshold, track by_src, count 5, seconds 60; classtype:trojan-activity; sid:8000003; rev:1;)
+
+# === ADVANCED PERSISTENT THREAT (APT) PROTECTION ===
+
+# Detect potential APT data exfiltration
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Large encrypted upload - potential data exfiltration"; flow:established,to_server; flowbits:isset,tls_session; threshold:type threshold, track by_src, count 1, seconds 3600; byte_test:>=50000,>,0,relative; classtype:data-theft; sid:8000004; rev:1;)
+
+# Block suspicious PowerShell commands
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Suspicious PowerShell encoded command"; flow:established,to_server; content:"powershell"; nocase; pcre:"/\s+-[eE][nN][cC]|\s+-[eE][^\\r\\n]{0,300}$/i"; classtype:shellcode-detect; sid:8000005; rev:1;)
+
+# === EXPLOIT PREVENTION RULES ===
+
+# Block buffer overflow attempts
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Potential buffer overflow"; flow:established; dsize:>8000; threshold:type threshold, track by_dst, count 1, seconds 60; classtype:attempted-admin; sid:8000006; rev:1;)
+
+# Block SQL injection attempts
+alert tcp any any -> any any (msg:"AEGIS SHIELD - SQL injection attempt"; flow:established,to_server; content:"SELECT"; nocase; pcre:"/SELECT.+(FROM|UNION|INSERT|UPDATE|DELETE)/i"; classtype:web-application-attack; sid:8000007; rev:1;)
+
+# Block Cross-Site Scripting (XSS) attempts
+alert tcp any any -> any any (msg:"AEGIS SHIELD - XSS attempt"; flow:established,to_server; content:"<script"; nocase; pcre:"/<script.*>.*<\/script>/i"; classtype:web-application-attack; sid:8000008; rev:1;)
+
+# === CRITICAL VULNERABILITY EXPLOITATION PROTECTION ===
+
+# Block Log4j exploitation attempts
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Log4j exploitation attempt"; flow:established,to_server; content:"${jndi:"; nocase; classtype:attempted-admin; sid:8000009; rev:1;)
+
+# Block Spring4Shell exploitation
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Spring4Shell exploitation attempt"; flow:established,to_server; content:"class.module.classLoader"; nocase; classtype:attempted-admin; sid:8000010; rev:1;)
+
+# === NETWORK RECONNAISSANCE PROTECTION ===
+
+# Block port scanning
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Port scan detected"; flow:stateless; flags:S; threshold:type threshold, track by_src, count 50, seconds 60; classtype:attempted-recon; sid:8000011; rev:1;)
+
+# Block aggressive IP scanning
+alert icmp any any -> any any (msg:"AEGIS SHIELD - ICMP scan detected"; threshold:type threshold, track by_src, count 100, seconds 60; classtype:attempted-recon; sid:8000012; rev:1;)
+
+# === CRITICAL INFRASTRUCTURE PROTOCOL PROTECTION ===
+
+# Protect industrial control systems - Modbus
+alert tcp any any -> any 502 (msg:"AEGIS SHIELD - Unauthorized Modbus Access"; flow:established,to_server; threshold:type threshold, track by_src, count 1, seconds 60; classtype:attempted-admin; sid:8000013; rev:1;)
+
+# Protect industrial control systems - DNP3
+alert tcp any any -> any 20000 (msg:"AEGIS SHIELD - Unauthorized DNP3 Access"; flow:established,to_server; threshold:type threshold, track by_src, count 1, seconds 60; classtype:attempted-admin; sid:8000014; rev:1;)
+
+# === RANSOMWARE PROTECTION ===
+
+# Detect rapid file modifications (potential ransomware)
+alert smb any any -> any any (msg:"AEGIS SHIELD - Potential ransomware file encryption activity"; threshold:type threshold, track by_src, count 50, seconds 60; classtype:successful-admin; sid:8000015; rev:1;)
+
+# Block suspicious EXE downloads from the internet
+alert http any any -> any any (msg:"AEGIS SHIELD - Suspicious executable download"; flow:established,to_client; content:"application/x-msdownload"; http_header; content:".exe"; nocase; http_uri; classtype:bad-unknown; sid:8000016; rev:1;)
+
+# === ZERO DAY PROTECTION - BEHAVIOR-BASED RULES ===
+
+# Detect unusual process creation patterns
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Unusual process creation pattern"; flow:established; threshold:type threshold, track by_src, count 10, seconds 30; flowbits:set,unusual_behavior; classtype:policy-violation; sid:8000017; rev:1;)
+
+# Detect unusual outbound connections
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Unusual outbound connection pattern"; flow:established,to_server; threshold:type threshold, track by_src, count 20, seconds 60; flowbits:set,unusual_behavior; classtype:policy-violation; sid:8000018; rev:1;)
+
+# === ADVANCED MALWARE PROTECTION ===
+
+# Detect Cobalt Strike beaconing
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Potential Cobalt Strike beacon"; flow:established; flowint:session.packets,>,10; pcre:"/^.{16}\x00.{8}$/"; threshold:type threshold, track by_src, count 5, seconds 300; classtype:trojan-activity; sid:8000019; rev:1;)
+
+# Detect Metasploit Meterpreter sessions
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Potential Meterpreter session"; flow:established; content:"|00 00 00 00 00|"; depth:5; content:"|00 01|"; distance:1; within:2; threshold:type threshold, track by_src, count 5, seconds 60; classtype:trojan-activity; sid:8000020; rev:1;)
+
+# === DATA LEAKAGE PREVENTION ===
+
+# Detect large file uploads containing sensitive data (SSN)
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Social Security Number data exfiltration"; flow:established,to_server; pcre:"/\b\d{3}[\s\-]?\d{2}[\s\-]?\d{4}\b/"; threshold:type threshold, track by_src, count 5, seconds 300; classtype:data-theft; sid:8000021; rev:1;)
+
+# Detect large file uploads containing sensitive data (credit cards)
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Credit card data exfiltration"; flow:established,to_server; pcre:"/\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\d{3})\d{11})\b/"; threshold:type threshold, track by_src, count 5, seconds 300; classtype:data-theft; sid:8000022; rev:1;)
+
+# === CRYPTOMINING PROTECTION ===
+
+# Detect cryptomining traffic
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Cryptomining pool communication detected"; flow:established,to_server; content:"stratum+tcp://"; classtype:policy-violation; sid:8000023; rev:1;)
+
+# === ZERO TRUST VERIFICATION ===
+
+# Alert on authentication from unusual locations
+alert tcp any any -> any any (msg:"AEGIS SHIELD - Authentication from unusual geo-location"; flow:established,to_server; geoip:src,!US,!CA,!GB,!FR,!DE; flowbits:isset,authenticated_session; classtype:policy-violation; sid:8000024; rev:1;) 

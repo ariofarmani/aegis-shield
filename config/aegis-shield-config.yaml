@@ -1,0 +1,125 @@
+# Aegis Shield - Military-Grade IDS/IPS Configuration
+# =========================================
+
+general:
+  name: "Aegis Shield"
+  version: "1.0.0"
+  log_level: "info"
+  mode: "inline" # options: inline (IPS), passive (IDS)
+
+network:
+  interfaces:
+    monitoring: ["eth0"] # Interface(s) to monitor
+    management: "eth1"  # Management interface
+  promiscuous: true
+  capture:
+    bpf_filter: "not host 127.0.0.1" # Berkeley Packet Filter
+    snaplen: 65535
+    
+engines:
+  suricata:
+    enabled: true
+    config_path: "/etc/aegis-shield/suricata.yaml"
+    ruleset_path: "/etc/aegis-shield/rules/suricata"
+    update_interval: 86400 # In seconds (24 hours)
+    
+  snort:
+    enabled: true
+    config_path: "/etc/aegis-shield/snort.conf"
+    ruleset_path: "/etc/aegis-shield/rules/snort"
+    update_interval: 86400
+    
+  zeek:
+    enabled: true
+    config_path: "/etc/aegis-shield/zeek/local.zeek"
+    
+  custom:
+    enabled: true
+    modules:
+      - "signature_analysis"
+      - "behavior_analysis"
+      - "anomaly_detection"
+      - "machine_learning"
+
+protection:
+  level: "maximum" # options: low, medium, high, maximum
+  auto_block: true
+  block_duration: 86400 # Block for 24 hours by default
+  
+  thresholds:
+    max_connections_per_ip: 100
+    max_http_requests_per_minute: 300
+    max_failed_logins: 5
+    
+  default_rules:
+    block_countries: ["KP", "RU"] # Country codes to block
+    block_ip_reputation: true # Block IPs with bad reputation
+    scan_detection: true # Block port scanning attempts
+    
+  advanced:
+    deep_packet_inspection: true
+    ssl_inspection: true
+    encrypted_traffic_analysis: true
+    
+alerts:
+  methods:
+    email:
+      enabled: true
+      server: "smtp.example.com"
+      recipients: ["security@example.com"]
+      alert_level: "high" # Only send for high and critical alerts
+      
+    syslog:
+      enabled: true
+      server: "syslog.example.com"
+      port: 514
+      protocol: "tcp"
+      
+    webhook:
+      enabled: false
+      url: "https://example.com/security/webhook"
+      
+dashboard:
+  enabled: true
+  port: 8443
+  https: true
+  cert_path: "/etc/aegis-shield/certs/server.crt"
+  key_path: "/etc/aegis-shield/certs/server.key"
+  authentication:
+    method: "local" # options: local, ldap, oauth
+    session_timeout: 1800 # In seconds
+    
+reporting:
+  enabled: true
+  retention_days: 90
+  scheduled_reports:
+    - name: "daily_summary"
+      frequency: "daily"
+      recipients: ["security@example.com"]
+    - name: "weekly_detailed"
+      frequency: "weekly"
+      recipients: ["security-team@example.com"]
+      
+integration:
+  siem:
+    enabled: true
+    protocol: "syslog"
+    server: "siem.example.com"
+    port: 514
+    
+  firewall:
+    enabled: true
+    type: "iptables"
+    
+  active_response:
+    enabled: true
+    actions:
+      - "block_ip"
+      - "block_network"
+      - "isolate_host"
+      
+encryption:
+  cert_based_authentication: true
+  communication_encryption: true
+  data_at_rest_encryption: true
+  key_rotation_days: 30 
